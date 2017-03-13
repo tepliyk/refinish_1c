@@ -20,39 +20,32 @@
 </form>
 <?
 $start = microtime(true);
-
 require_once('paserXML.php');
 
 //var_dump($TOVAR_XML); 
 //if (empty($wp)) {require_once( '../wp-load.php' );wp( array( 'tb' => '1' ) );}
-$er_log = 0;
+$log = array();
 //Перебор товаров 
 foreach ($TOVAR_XML as $ID_main => $VALUE_main){
-
+	
 $wpdb->show_errors();
-
+//########################################################################если нет вариаций
+//########################################################################если нет вариаций
+//########################################################################если нет вариаций
+if(count($VALUE_main['VARIACIA']) == 0)
+{
 //Проверка изменилось значение или нет
 $SK = $wpdb->get_results("SELECT meta_value FROM $wpdb->postmeta WHERE meta_key = '_stock' AND post_id ='".$ID_main."'");
 $stock = (int)$SK[0]->meta_value;
+if((int)$stock != (int)$VALUE_main['STOK']){
 
-if(((int)$stock != (int)$VALUE_main['STOK'])){
-echo "<br>";
-echo "main КОЛ";
-echo " - ";
-echo (int)$stock;
-echo " - ";
-echo (int)$VALUE_main['STOK'];
-echo " - ";
-echo $VALUE_main['SKU']; 
-echo " - ";
-echo $ID_main;
-echo "<br>"; 
-$er_log++;
+$log["TXT"][] = "Товар КОЛ - ".(int)$stock."->".(int)$VALUE_main['STOK'];
+$log["SKU"][] = (string)$VALUE_main['SKU']; 
+ 
 //ОСТАТОК 
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
 meta_key = '_stock'  AND post_id = %d", $VALUE_main['STOK'], $ID_main );
 $wpdb->query($sql);
-
 //Наличие
 $stock_status = ($VALUE_main['STOK']==0) ? "outofstock" : "instock";
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
@@ -60,35 +53,23 @@ meta_key = '_stock_status'  AND post_id = %s", $stock_status, $ID_main );
 $wpdb->query($sql);
 }
 
-// Проверки на больше меньше и приведение форматов
+// Проверки  на больше меньше и приведение форматов
 $var_price_reg_main = number_format($VALUE_main['PRICE'], 2, '.', '');
 $var_price_sale_main = ($VALUE_main['PRICE_SALE']<$VALUE_main['PRICE'])? number_format($VALUE_main['PRICE_SALE'], 2, '.', '') : NULL;
 $var_price_main = ($var_price_sale_main) ? number_format($VALUE_main['PRICE_SALE'], 2, '.', '') : number_format($VALUE_main['PRICE'], 2, '.', '');
 
-//ОСНОВНАЯ стоимость 
-//Проверка изменения стоимости
+//-------------------------------------------------------------------------------------------------------------------------------------------------
+
 $PR = $wpdb->get_results("SELECT meta_value FROM $wpdb->postmeta WHERE meta_key = '_price' AND post_id ='".$ID_main."'");
 $price = $PR[0]->meta_value;
 
 if(($price != $var_price_main))
 {
-echo "<br>";
-echo "main ЦЕНА";
-echo " - ";
-echo $price;
-echo " - ";
-echo $var_price_main;
-echo " - ";
-echo $VALUE_main['SKU']; 
-echo " - ";
-echo $ID_main;
-echo "<br>"; 
-$er_log++;
+	
+$log["TXT"][] = "Товар ЦЕНА - ".$price."->".$var_price_main;
+$log["SKU"][] = (string)$VALUE_main['SKU']; 
 
-$sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
-meta_key = '_price'  AND post_id = %d", $var_price_main, $ID_main );
-$wpdb->query($sql);
-
+//ОСНОВНАЯ стоимость 
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
 meta_key = '_regular_price' AND post_id = %d", $var_price_reg_main, $ID_main );
 $wpdb->query($sql);
@@ -96,11 +77,14 @@ $wpdb->query($sql);
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
  meta_key = '_sale_price' AND post_id = %d", $var_price_sale_main, $ID_main );
 $wpdb->query($sql);
+
+$sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
+meta_key = '_price'  AND post_id = %d", $var_price_main, $ID_main );
+$wpdb->query($sql);
 }
-
+}
 //Если Вариаций больше одной
-if(count($VALUE_main['VARIACIA'])>0){
-
+else {
 //находим значения и ID максимальной и минимальной вариации
 $price_variation = array();
 $price_variation_sale = array();
@@ -111,10 +95,14 @@ $price_variation_sale[$ID_variacia]  = $VALUE_variation['PRICE_SALE'];
 }
 
 foreach ($VALUE_main['VARIACIA'] as $ID_variacia => $VALUE_variation){
+
 if($VALUE_variation['PRICE'] == max($price_variation)){$id_max_variation_reg = $ID_variacia; $max_price_reg = $VALUE_variation['PRICE'];}
+
 if($VALUE_variation['PRICE'] == min($price_variation)){$id_min_variation_reg = $ID_variacia; $min_price_reg = $VALUE_variation['PRICE'];}
+
 if($VALUE_variation['PRICE_SALE'] == max($price_variation_sale)){$id_max_variation_sale = $ID_variacia; $max_price_sale = $VALUE_variation['PRICE_SALE'];}
-if($VALUE_variation['PRICE_SALE'] == min($price_variation_sale)){$id_min_variation_sale = $ID_variacia; $min_price_sale = $VALUE_variation['PRICE_SALE'];}
+
+if($VALUE_variation['PRICE_SALE'] == min($price_variation_sale)){$id_min_variation_sale = $ID_variacia; $min_price_sale = $VALUE_variation['PRICE_SALE']; }
 }
 
 $max_price = ($max_price_reg > $max_price_sale) ? $max_price_sale : $max_price_reg ;
@@ -191,7 +179,7 @@ $wpdb->query($sql);
 //#################################################################################################################################################
 $option = Get_option('_transient_wc_var_prices_'.$ID_main);
 $option = json_decode($option, true);
-if($option) // ЕСЛИ ЗАПИCЬ ЕСТЬ!
+if($option) // ЕСЛИ ЗАПИМЬ ЕСТЬ!
 foreach($option as $key_op => $value_op) 
 foreach($value_op as $key =>$value)
 foreach ($VALUE_main['OPTION'] as $ID_variacia => $VALUE_variation)
@@ -212,24 +200,15 @@ Update_option('_transient_wc_var_prices_'.$ID_main, $option );
 //***************************ВАРИАЦИИ**********************************************************
 foreach ($VALUE_main['VARIACIA'] as $ID_variacia => $VALUE_variation)
 {
-//Проверка изменилось значение или нет
+	//Проверка изменилось значение или нет
 $SK = $wpdb->get_results("SELECT meta_value FROM $wpdb->postmeta WHERE meta_key = '_stock' AND post_id ='".$ID_variacia."'");
 $stock_variacia_base = (int)$SK[0]->meta_value;
 
 if((int)$stock_variacia_base != (int)$VALUE_variation['STOK']){
 
-echo "<br>";
-echo "ВАРИАЦИЯ - КОЛ ";
-echo " - ";
-echo (int)$stock_variacia_base;
-echo " - ";
-echo (int)$VALUE_variation['STOK'];
-echo " - ";
-echo $VALUE_variation['SKU']; 
-echo " - ";
-echo $ID_variacia;
-echo "<br>"; 
-$er_log++;
+$log["TXT"][] = "ВАРИАЦИЯ КОЛ  - ".(int)$stock_variacia_base."->".(int)$VALUE_variation['STOK'];
+$log["SKU"][] = (string)$VALUE_variation['SKU']; 
+	
 //ОСТАТКИ 
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
 meta_key = '_stock'  AND post_id = %d", $VALUE_variation['STOK'], $ID_variacia );
@@ -240,8 +219,8 @@ $stock_status = ($VALUE_variation['STOK']==0) ? "outofstock" : "instock";
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
 meta_key = '_stock_status'  AND post_id = %s", $stock_status, $ID_variacia );
 $wpdb->query($sql);
-}
 
+}
 // Проверки  на больше меньше и приведение форматов
 $var_price_reg = number_format($VALUE_variation['PRICE'], 2, '.', '');
 $var_price_sale = ($VALUE_variation['PRICE_SALE']<$VALUE_variation['PRICE']) ? number_format($VALUE_variation['PRICE_SALE'], 2, '.', '') : NULL;
@@ -253,35 +232,36 @@ $PR = $wpdb->get_results("SELECT meta_value FROM $wpdb->postmeta WHERE meta_key 
 $price_variacia_base = $PR[0]->meta_value;
 if($var_price  != $price_variacia_base){
 
-echo "<br>";
-echo "ВАРИАЦИЯ - цена ";
-echo $price_variacia_base;
-echo " - ";
-echo $var_price;
-echo " - ";
-echo $VALUE_variation['SKU']; 
-echo " - ";
-echo $ID_variacia;
-echo "<br>"; 
-$er_log++;
+$log["TXT"][] = "ВАРИАЦИЯ ЦЕНА  - ".$price_variacia_base."->".$var_price;
+$log["SKU"][] = (string)$VALUE_variation['SKU']; 
+
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
-meta_key = '_regular_price' AND post_id = %d", $var_price_reg, $ID_variacia);
+meta_key = '_regular_price' AND post_id = %d", $var_price_reg, $ID_variacia );
 $wpdb->query($sql);
 
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
-meta_key = '_sale_price' AND post_id = %d", $var_price_sale, $ID_variacia);
+meta_key = '_sale_price' AND post_id = %d", $var_price_sale, $ID_variacia );
 $wpdb->query($sql);
 
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
 meta_key = '_price'  AND post_id = %d", $var_price, $ID_variacia);
 $wpdb->query($sql);
+                                     }
 }
+
 }
+ 
 }
-}
+
 $time = microtime(true) - $start;
-printf('Скрипт выполнялся %.4F сек.', $time);
-echo "<br>ОШИБОК -  ". $er_log/4;
+printf('УСПЕХ! Скрипт выполнялся %.4F сек.', $time);
+echo "<br>";
+@header('HTTP/1.1 200 Ok');
+@header('Content-type: text/html; charset=windows-1251');
+
+
+//Запись лога
+var_dump($log);
 ?>
 
 
