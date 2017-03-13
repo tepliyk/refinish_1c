@@ -84,6 +84,7 @@ echo " - ";
 echo $ID_main;
 echo "<br>"; 
 $er_log++;
+
 $sql = $wpdb->prepare( "UPDATE $wpdb->postmeta SET meta_value = %s WHERE 
 meta_key = '_price'  AND post_id = %d", $var_price_main, $ID_main );
 $wpdb->query($sql);
@@ -254,9 +255,9 @@ if($var_price  != $price_variacia_base){
 
 echo "<br>";
 echo "ВАРИАЦИЯ - цена ";
-echo $var_price;
-echo " - ";
 echo $price_variacia_base;
+echo " - ";
+echo $var_price;
 echo " - ";
 echo $VALUE_variation['SKU']; 
 echo " - ";

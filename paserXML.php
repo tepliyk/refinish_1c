@@ -27,7 +27,7 @@ rename($uploadfile, $uploaddir."/up/".date('H_i_s_d_m_y').".xml");
 //print_r($_FILES);
 
 //-----------------------------------------------------------------------------------------------
-$TOVAR_XML = array(); $i = 0; $buff ="";
+$TOVAR_XML = array(); $i = 0;
 //-----------------------------------------------------------------------------------------------
 foreach($movies->MAIN_TOVAR as $MAIN_TOVAR){
 // Получаем ID по артиклу 
@@ -42,7 +42,8 @@ $TOVAR_XML[$post_id]['PRICE_SALE'] = (string)$MAIN_TOVAR->PRICE_SALE ;
 $TOVAR_XML[$post_id]['STOK'] = (int)$MAIN_TOVAR->STOK;
 if($MAIN_TOVAR->VARIACIA)
 foreach($MAIN_TOVAR->VARIACIA as $VARIACIA){
-// Получаем ID по артиклу //Для цен максимальное значение
+// Получаем ID по артиклу 
+//Для цен максимальное значение
 $ID_var = $wpdb->get_results("SELECT post_id FROM $wpdb->postmeta WHERE meta_value = '".$VARIACIA->SKU."' ORDER BY post_id DESC");
 $post_id_v = (int)$ID_var[0]->post_id;
 if($post_id_v){
@@ -52,8 +53,7 @@ $TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['PRICE_SALE'] = (string)$VARIACIA->
 $TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['STOK'] = (int)$VARIACIA->STOK; 
               }
 //Для опций минимальное значение
-$ID_var = $wpdb->get_results("SELECT post_id FROM $wpdb->postmeta WHERE meta_value = '".$VARIACIA->SKU."'");
-$post_id_v = (int)$ID_var[0]->post_id;
+$post_id_v = (int)end($ID_var)->post_id;
 if($post_id_v){
 $TOVAR_XML[$post_id]['OPTION'][$post_id_v]['PRICE'] = ((int)$VARIACIA->PRICE) ? (float)$VARIACIA->PRICE : 0;
 $TOVAR_XML[$post_id]['OPTION'][$post_id_v]['PRICE_SALE'] = (string)$VARIACIA->PRICE_SALE;
