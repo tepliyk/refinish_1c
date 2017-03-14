@@ -36,7 +36,7 @@ $post_id = (int)$ID[0]->post_id;
 if($post_id){
 $i++;
 //-----------------------------------------------------------------------------------------------
-$TOVAR_XML[$post_id]['SKU'] = $MAIN_TOVAR->SKU;
+$TOVAR_XML[$post_id]['SKU'] = (string)$MAIN_TOVAR->SKU;
 $TOVAR_XML[$post_id]['PRICE'] = ((int)$MAIN_TOVAR->PRICE) ? (float)$MAIN_TOVAR->PRICE : 0;
 $TOVAR_XML[$post_id]['PRICE_SALE'] = (string)$MAIN_TOVAR->PRICE_SALE ;
 $TOVAR_XML[$post_id]['STOK'] = (int)$MAIN_TOVAR->STOK;
@@ -44,25 +44,29 @@ if($MAIN_TOVAR->VARIACIA)
 foreach($MAIN_TOVAR->VARIACIA as $VARIACIA){
 // Получаем ID по артиклу 
 //Для цен максимальное значение
-$ID_var = $wpdb->get_results("SELECT post_id FROM $wpdb->postmeta WHERE meta_value = '".$VARIACIA->SKU."' ORDER BY post_id DESC");
+$ID_var = $wpdb->get_results("SELECT post_id FROM $wpdb->postmeta WHERE meta_value = '".$VARIACIA->SKU."'");
+if(count($ID_var)>1){
+foreach ($ID_var as $ID){
+$post_id_v = (int)$ID->post_id;
+$SKU = $wpdb->get_results("SELECT meta_value FROM $wpdb->postmeta WHERE meta_key = '_sku' AND post_id ='".$post_id_v."'");
+$sku_var = (string)$SKU[0]->meta_value;
+if ($sku_var == (string)$VARIACIA->SKU) Break;
+}
+                   }
+else
 $post_id_v = (int)$ID_var[0]->post_id;
 if($post_id_v){
-$TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['SKU'] = $VARIACIA->SKU;
+$TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['SKU'] = (string)$VARIACIA->SKU;
 $TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['PRICE'] = ((int)$VARIACIA->PRICE) ? (float)$VARIACIA->PRICE : 0;
 $TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['PRICE_SALE'] = (string)$VARIACIA->PRICE_SALE;
-$TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['STOK'] = (int)$VARIACIA->STOK; 
+$TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['STOK'] = (int)$VARIACIA->STOK;             		  
               }
-//Для опций минимальное значение
-$post_id_v = (int)end($ID_var)->post_id;
-if($post_id_v){
-$TOVAR_XML[$post_id]['OPTION'][$post_id_v]['PRICE'] = ((int)$VARIACIA->PRICE) ? (float)$VARIACIA->PRICE : 0;
-$TOVAR_XML[$post_id]['OPTION'][$post_id_v]['PRICE_SALE'] = (string)$VARIACIA->PRICE_SALE;
-             }
+			  }
 			    }
 			      }
-                    }                      
+                                        
 //var_dump($TOVAR_XML); 
 
-echo "Всего - ".$i. " шт.";
+echo "Всего распознано - ".$i. " товаров.";
 print "</pre>";
 ?>
