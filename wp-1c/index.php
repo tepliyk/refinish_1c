@@ -1,37 +1,53 @@
-ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ ТЕСТ 
-<form enctype="multipart/form-data" action="#" method="POST">
-    Отправить этот файл: <input name="datafile" type="file" />
-    <input type="submit" value="Send File" />
-</form>
-
-<?
+<?php 
 $start = microtime(true);
+error_reporting( E_ERROR ); // Отключение предупреждений и нотисов
+//WP библиотеки
+if (empty($wp)) {require_once( '../wp-load.php' );wp( array( 'tb' => '1' ) );}
+//$wpdb->show_errors();
+//Включен ли обмен на сайте?
+$status = $wpdb->get_results("SELECT data FROM wpcy_1c_stat where `col_edit` = '0' AND `col_all` = '0' AND `sek` = '0' order by id desc limit 1");
+$stat = $status[0]->data;
+if($stat=='Обмен OFF')
+die('Обмен выключен на сайте'); 
+//-----------------------------------------------------------------------------
+//Секретный ключ
+$submit = (isset($_POST['submit']) ) ? ($_POST['submit']) : false;
+if ( $submit != 'Silta-ColorroloC-atliS') //die('SECRET PASS EMPTY');
+//-----------------------------------------------------------------------------
+
+require_once('db_order.php');
+
+header('Content-type: application/xml');
+require_once('Array2XML.php');
+
+$converter = new Array2XML();
+//var_dump($ZAKAZ);
+$xmlStr = $converter->convert($ZAKAZ);
+echo $xmlStr;   //ВЫВОД XML 
+
 require_once('paserXML.php');
 require_once('function.php');
-//var_dump($TOVAR_XML); 
-//if (empty($wp)) {require_once( '../wp-load.php' );wp( array( 'tb' => '1' ) );}
+
 $log = array();
 //Перебор товаров 
 foreach ($TOVAR_XML as $ID_main => $VALUE_main){
-	
-$wpdb->show_errors();
+
 //##########################если нет вариаций##################################################
 if(count($VALUE_main['VARIACIA']) == 0)
 {
 	$buff = value_set ($ID_main, $VALUE_main['STOK'], $VALUE_main['PRICE'], $VALUE_main['PRICE_SALE']);
     if($buff) $log[$VALUE_main['SKU']] = $buff;
 }
-
 else //Если Вариаций больше одной
 {
+	
 foreach ($VALUE_main['VARIACIA'] as $ID_variacia => $VALUE_variation)
 { 
    $buff_var = value_set ($ID_variacia, $VALUE_variation['STOK'], $VALUE_variation['PRICE'], $VALUE_variation['PRICE_SALE']);	
    if($buff_var) $log[$VALUE_main['SKU']][$VALUE_variation['SKU']] = $buff_var;
 }
 //---------------------------------------------------------------------------------
-if(count($log[$VALUE_variation['SKU']]['PRICE'])>0){
-
+if(count($log[$VALUE_main['SKU']][$VALUE_variation['SKU']]['PRICE'])>0){
 //находим значения и ID максимальной и минимальной вариации
 $price_variation = array();
 $price_variation_sale = array();
@@ -98,43 +114,17 @@ Update_option('_transient_wc_var_prices_'.$ID_main, $option_save);
 //#################################################################################################################################################
 }
       }                                      
-        	  }											 
+        	  }											 			  
+//#################################################################################################################################################		  
 //Запись лога
-echo "<br>";
-echo "Изменено -".count($log)." товаров.<br>"; 
 $log_save = json_encode($log);
-echo "<br>";
-//var_dump($log_save);
-echo "<br>";
 $time = microtime(true) - $start;
-printf('УСПЕХ! Скрипт выполнялся %.4F сек.', $time);
+
 //Запись лога в базу
 $sql = $wpdb->prepare("INSERT INTO `wpcy_1c_stat` (date, sek, col_all, col_edit, data) VALUES (now(), %d, %d, %d, %s)", $time, $i, count($log), $log_save);
 $wpdb->query($sql);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ 
+//ВЫВОд
+echo "<!--Изменено -".count($log)." товаров.-->"; 
+printf('<!--УСПЕХ! Скрипт выполнялся %.4F сек.-->', $time);
 ?>

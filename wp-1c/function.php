@@ -1,5 +1,4 @@
 <?php
-
 function value_set ($id, $stok, $price_reg, $price_sale)
 {
 	global $wpdb;
@@ -29,7 +28,7 @@ $price = $PR[0]->meta_value;
 $PR_RG = $wpdb->get_results("SELECT meta_value FROM $wpdb->postmeta WHERE meta_key = '_regular_price' AND post_id ='".$id."'");
 $price_reg = $PR_RG[0]->meta_value;
 //Если изменилась регулярная стоимость или стоимость 
-if(($price != $var_price_main) || ($price_reg != $var_price_reg_main) )
+if((($price != $var_price_main) || ($price_reg != $var_price_reg_main)) && (int)$var_price_main)
 {
 $log["PRICE"] = $price."->".$var_price_main;
 if($price==$var_price_main) $log["PRICE"] .= "(".$price_reg."->".$var_price_reg_main.")";
@@ -46,3 +45,4 @@ $wpdb->query($sql);
 }
 return $log;	
 } 
+?>

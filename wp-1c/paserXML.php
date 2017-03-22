@@ -1,30 +1,21 @@
 <?php
 //Подключаем библиотеки вордпреса 
-if (empty($wp)) {require_once( '../wp-load.php' );wp( array( 'tb' => '1' ) );}
+//if(!$_FILES['datafile']['tmp_name']) 
+	die();
 
-if(!$_FILES['datafile']['tmp_name']) exit("Файл не получен!");
+$uploadfile = $_FILES['datafile']['tmp_name'];
 
-$uploaddir = 'c:/OpenServer/domains/refinish.ua/wp-1c/';
-$uploadfile = $uploaddir . basename($_FILES['datafile']['name']);
-
-echo '<pre>';
-if (move_uploaded_file($_FILES['datafile']['tmp_name'], $uploadfile)) {
-    echo "Файл корректен и был успешно загружен.\n";
-} else {
-    echo "Возможная атака с помощью файловой загрузки!\n";
-}
- 
 if (file_exists($uploadfile)) {
-    $movies = simplexml_load_file($uploadfile);
- // print_r($movies);
-} else {
-    exit('Не удалось открыть файл. - '.$uploadfile);
-} 
-//ПЕРЕименуем  файлик 
-rename($uploadfile, $uploaddir."/up/".date('H_i_s_d_m_y').".xml"); 
 
-//echo 'Некоторая отладочная информация:';
-//print_r($_FILES);
+ echo "<!-- ФАЙЛ ПОЛУЧЕН -->"; 
+ 
+$err =	(base64_decode(file_get_contents($_FILES['datafile']['tmp_name'])));
+$movies  =	new SimpleXMLElement($err);
+//var_dump($movies);
+	
+} else {
+  die('<!--Не удалось открыть файл. - '.$uploadfile.'-->');
+} 
 
 //-----------------------------------------------------------------------------------------------
 $TOVAR_XML = array(); $i = 0;
@@ -66,7 +57,4 @@ $TOVAR_XML[$post_id]['VARIACIA'][$post_id_v]['STOK'] = (int)$VARIACIA->STOK;
 			      }
                                         
 //var_dump($TOVAR_XML); 
-
-echo "Всего распознано - ".$i. " товаров.";
-print "</pre>";
 ?>
