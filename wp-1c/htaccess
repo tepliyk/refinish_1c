@@ -1,0 +1,4 @@
+require valid-user
+Authname "Basic Auth"
+Authtype Basic
+AuthUserFile  /var/www/refinish.ua/wp-content/wp-1c/.htpasswd

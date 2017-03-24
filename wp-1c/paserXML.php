@@ -1,7 +1,7 @@
 <?php
 //Подключаем библиотеки вордпреса 
 //if(!$_FILES['datafile']['tmp_name']) 
-	die();
+	//die();
 
 $uploadfile = $_FILES['datafile']['tmp_name'];
 
